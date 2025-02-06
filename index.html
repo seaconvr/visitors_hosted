@@ -49,7 +49,7 @@
             font-weight: bold;
         }
 
-        input[type="text"] {
+        input[type="text"], button {
             padding: 10px;
             margin: 5px 0;
             width: 100%;
@@ -57,6 +57,17 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 16px; /* Consistent font size */
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #0056b3;
         }
 
         /* Webcam Styling */
@@ -133,6 +144,12 @@
             <!-- Webcam -->
             <div id="camera"></div>
             <br>
+
+            <!-- Take Photo Button -->
+            <button type="button" onclick="takeSnapshot()">Take Photo</button><br><br>
+
+            <!-- Submit Button -->
+            <button type="submit">Submit</button>
         </form>
 
         <!-- Visitor Pass -->
@@ -157,7 +174,7 @@
         const cloudinaryUrl = 'https://api.cloudinary.com/v1_1/dqdg4jgl4/upload';
         const cloudinaryUploadPreset = 'visitors';
 
-        // Initialize Webcam
+       // Initialize Webcam
         Webcam.set({
             width: 320,
             height: 240,
@@ -166,42 +183,43 @@
         });
         Webcam.attach('#camera');
 
-        // Automatically take a photo and process the form
-        setTimeout(() => {
-            takeSnapshot();
-        }, 1000); // Take photo after 1 second
-
         // Take a photo
         function takeSnapshot() {
-            Webcam.snap(async function(data_uri) {
-                // Display photo in visitor pass
+            Webcam.snap(function(data_uri) {
                 document.getElementById('passPhoto').src = data_uri;
-
-                // Upload photo to Cloudinary
-                const photoUrl = await uploadPhoto(data_uri);
-
-                // Get form data
-                const name = document.getElementById('name').value;
-                const vehicleReg = document.getElementById('vehicleReg').value;
-                const company = document.getElementById('company').value;
-                const visiting = document.getElementById('visiting').value;
-                const dateTime = new Date().toLocaleString();
-
-                // Display visitor pass
-                document.getElementById('passName').textContent = name;
-                document.getElementById('passVehicleReg').textContent = vehicleReg;
-                document.getElementById('passCompany').textContent = company;
-                document.getElementById('passVisiting').textContent = visiting;
-                document.getElementById('passDateTime').textContent = dateTime;
-                document.getElementById('visitorPass').style.display = 'block';
-
-                // Submit data to Supabase
-                await submitData(name, vehicleReg, company, visiting, photoUrl, dateTime);
-
-                // Print visitor pass
-                printPass();
+                document.getElementById('photo').value = data_uri;
             });
         }
+
+        // Handle form submission
+        document.getElementById('visitorForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            // Get form data
+            const name = document.getElementById('name').value;
+            const vehicleReg = document.getElementById('vehicleReg').value;
+            const company = document.getElementById('company').value;
+            const visiting = document.getElementById('visiting').value;
+            const photo = document.getElementById('photo').value;
+            const dateTime = new Date().toLocaleString();
+
+            // Upload photo to Cloudinary
+            const photoUrl = await uploadPhoto(photo);
+
+            // Submit data to Supabase
+            await submitData(name, vehicleReg, company, visiting, photoUrl, dateTime);
+
+            // Display visitor pass
+            document.getElementById('passName').textContent = name;
+            document.getElementById('passVehicleReg').textContent = vehicleReg;
+            document.getElementById('passCompany').textContent = company;
+            document.getElementById('passVisiting').textContent = visiting;
+            document.getElementById('passDateTime').textContent = dateTime;
+            document.getElementById('visitorPass').style.display = 'block';
+
+            // Print visitor pass
+            printPass();
+        });
 
         // Upload photo to Cloudinary
         async function uploadPhoto(data_uri) {
