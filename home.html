@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Registration</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.26/webcam.min.js"></script>
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Calibri', sans-serif;
+            font-size: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+            flex-direction: column;
+        }
+
+        /* Container for the form */
+        .container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px; /* Optimized for 10.4-inch tablet */
+        }
+
+        /* Company Logo */
+        .logo {
+            width: 120px; /* Adjusted for smaller screens */
+            margin-bottom: 20px;
+        }
+
+        /* Form Styling */
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px; /* Slightly larger heading */
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            max-width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px; /* Consistent font size */
+        }
+
+        /* Webcam Styling */
+        #camera {
+            margin: 20px 0;
+            width: 100%;
+            max-width: 320px; /* Adjusted for smaller screens */
+        }
+
+        /* Visitor Pass Styling */
+        #visitorPass {
+            display: none; /* Hidden by default */
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 300px; /* One-third of A4 width */
+        }
+
+        #visitorPass img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #visitorPass, #visitorPass * {
+                visibility: visible;
+            }
+            #visitorPass {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 33%; /* One-third of A4 width */
+                border: none;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Company Logo -->
+        <img src="logo.png" alt="Company Logo" class="logo">
+
+        <!-- Heading -->
+        <h1>Visitor Registration</h1>
+
+        <!-- Form -->
+        <form id="visitorForm">
+            <!-- Name -->
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required><br>
+
+            <!-- Vehicle Registration -->
+            <label for="vehicleReg">Vehicle Registration:</label>
+            <input type="text" id="vehicleReg" name="vehicleReg" required><br>
+
+            <!-- Company -->
+            <label for="company">Company:</label>
+            <input type="text" id="company" name="company" required><br>
+
+            <!-- Visiting -->
+            <label for="visiting">Visiting:</label>
+            <input type="text" id="visiting" name="visiting" required><br>
+
+            <!-- Webcam -->
+            <div id="camera"></div>
+            <br>
+        </form>
+
+        <!-- Visitor Pass -->
+        <div id="visitorPass">
+            <h2>Visitor Pass</h2>
+            <p><strong>Name:</strong> <span id="passName"></span></p>
+            <p><strong>Vehicle Reg:</strong> <span id="passVehicleReg"></span></p>
+            <p><strong>Company:</strong> <span id="passCompany"></span></p>
+            <p><strong>Visiting:</strong> <span id="passVisiting"></span></p>
+            <p><strong>Date/Time:</strong> <span id="passDateTime"></span></p>
+            <img id="passPhoto" src="" alt="Visitor Photo">
+        </div>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const supabaseUrl = 'https://your-supabase-url.supabase.co';
+        const supabaseKey = 'your-supabase-key';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Cloudinary Configuration
+        const cloudinaryUrl = 'https://api.cloudinary.com/v1_1/your-cloud-name/upload';
+        const cloudinaryUploadPreset = 'your-upload-preset';
+
+        // Initialize Webcam
+        Webcam.set({
+            width: 320,
+            height: 240,
+            image_format: 'jpeg',
+            jpeg_quality: 90
+        });
+        Webcam.attach('#camera');
+
+        // Automatically take a photo and process the form
+        setTimeout(() => {
+            takeSnapshot();
+        }, 1000); // Take photo after 1 second
+
+        // Take a photo
+        function takeSnapshot() {
+            Webcam.snap(async function(data_uri) {
+                // Display photo in visitor pass
+                document.getElementById('passPhoto').src = data_uri;
+
+                // Upload photo to Cloudinary
+                const photoUrl = await uploadPhoto(data_uri);
+
+                // Get form data
+                const name = document.getElementById('name').value;
+                const vehicleReg = document.getElementById('vehicleReg').value;
+                const company = document.getElementById('company').value;
+                const visiting = document.getElementById('visiting').value;
+                const dateTime = new Date().toLocaleString();
+
+                // Display visitor pass
+                document.getElementById('passName').textContent = name;
+                document.getElementById('passVehicleReg').textContent = vehicleReg;
+                document.getElementById('passCompany').textContent = company;
+                document.getElementById('passVisiting').textContent = visiting;
+                document.getElementById('passDateTime').textContent = dateTime;
+                document.getElementById('visitorPass').style.display = 'block';
+
+                // Submit data to Supabase
+                await submitData(name, vehicleReg, company, visiting, photoUrl, dateTime);
+
+                // Print visitor pass
+                printPass();
+            });
+        }
+
+        // Upload photo to Cloudinary
+        async function uploadPhoto(data_uri) {
+            const formData = new FormData();
+            formData.append('file', data_uri);
+            formData.append('upload_preset', cloudinaryUploadPreset);
+
+            const response = await fetch(cloudinaryUrl, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            return data.secure_url;
+        }
+
+        // Submit data to Supabase
+        async function submitData(name, vehicleReg, company, visiting, photoUrl, dateTime) {
+            const { data, error } = await supabase
+                .from('visitors')
+                .insert([{ name, vehicle_reg: vehicleReg, company, visiting, photo_url: photoUrl, date_time: dateTime }]);
+
+            if (error) {
+                console.error('Error submitting data:', error);
+            } else {
+                console.log('Data submitted successfully:', data);
+            }
+        }
+
+        // Print visitor pass
+        function printPass() {
+            window.print();
+            setTimeout(() => {
+                clearForm();
+            }, 1000); // Clear form after printing
+        }
+
+        // Clear form for new entry
+        function clearForm() {
+            document.getElementById('visitorForm').reset();
+            document.getElementById('visitorPass').style.display = 'none';
+            document.getElementById('passPhoto').src = '';
+            Webcam.attach('#camera'); // Reattach webcam
+        }
+    </script>
+</body>
+</html>
